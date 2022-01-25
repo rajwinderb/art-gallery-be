@@ -28,6 +28,15 @@ class users(db.Model):
         self.username = username
 
 
+class tags(db.Model):
+    __tablename__ = 'tags'
+    id = db.Column(db.Integer, primary_key=True)
+    tag = db.Column(db.String(150), nullable=False)
+
+    def __init__(self, tag):
+        self.tag = tag
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -58,11 +67,30 @@ def get_users():
 def add_users():
     if request.method == 'POST':
         user_data = request.get_json()
+        in_database = users.query.filter_by(username=user_data['username']).first()
+        if in_database:
+            return jsonify({'status': 'failed', 'message': 'This username already exists, try another'}, user_data)
         new_user = users(username=user_data['username'])
         db.session.add(new_user)
         db.session.commit()
         return jsonify({'status': 'success', 'message': 'user added'}, user_data)
     return jsonify({'status': 'failed'}, 404)
+
+
+@app.route('/tags', methods=['GET'])
+def get_tags():
+    if request.method == 'GET':
+        all_tags = []
+        response = tags.query.all()
+        for tag in response:
+            current_tag = {'id': tag.id, 'tag': tag.username}
+            all_tags.append(current_tag)
+        return jsonify({'status': 'success', 'tags': all_tags})
+    return jsonify({'status': 'failed'}, 404)
+
+
+# @app.route('/artworks', method=['POST'])
+
 
 if __name__ == '__main__':
     app.run(port=5000)
