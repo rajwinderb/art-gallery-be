@@ -34,6 +34,7 @@ class artists(db.Model):
 
 
 class users(db.Model):
+
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), nullable=False)
@@ -269,7 +270,7 @@ def get_artworks():
 def get_user_art(userid):
     if request.method == 'GET':
         all_artworks = []
-        response = db.session.query(artworks, artists, userArt).select_from(artworks).join(artists).join(userArt)\
+        response = db.session.query(artworks, artists, userArt).select_from(artworks).join(artists).join(userArt) \
             .filter_by(userid=userid).all()
         for artwork in response:
             tags_response = db.session.query(tags, tagRelations).join(tagRelations).filter_by(artid=artwork[0].id).all()
@@ -297,7 +298,8 @@ def get_user_art(userid):
                                'artistdisplayname': artwork[1].artistdisplayname,
                                'artistdisplaybio': artwork[1].artistdisplaybio,
                                'artistgender': artwork[1].artistgender,
-                               'tags': artwork_tags}
+                               'tags': artwork_tags,
+                               'isfavourite': artwork[2].isfavourite}
             all_artworks.append(current_artwork)
         return jsonify({'status': 'success', 'artworks': all_artworks})
     return jsonify({'status': 'failed'}, 404)
@@ -338,8 +340,24 @@ def delete_user_art(userid):
     return jsonify({'status': 'failed'}, 404)
 
 
-# TODO: '/artworks' PUT
-# TODO: '/userart' PUT
+@app.route('/artworks/<int:artid>', methods=['PUT'])
+def update_artwork(artid):
+    update_data = request.get_json()
+    update_data = dict_clean(dict(update_data))
+    artwork = artworks.query.filter_by(id=artid).first()
+    artwork.featured = update_data['featured']
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': 'featured changed', 'featured': artwork.featured})
+
+
+@app.route('/userart/<int:userid>', methods=['PUT'])
+def update_user_art(userid):
+    update_data = request.get_json()
+    update_data = dict_clean(dict(update_data))
+    user_art = userArt.query.filter_by(userid=userid, artid=update_data['artid']).first()
+    user_art.isfavourite = update_data['isfavourite']
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': 'isfavourite changed', 'is_favourite': user_art.isfavourite})
 
 
 if __name__ == '__main__':
