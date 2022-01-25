@@ -14,10 +14,10 @@ if URI.startswith("postgres://"):
     URI = URI.replace("postgres://", "postgresql://", 1)
 if os.getenv('DEVELOPMENT'):
     app.debug = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+    app.config['SQLALCHEMY_DATABASE_URI'] = URI
 else:
     app.debug = False
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+    app.config['SQLALCHEMY_DATABASE_URI'] = URI
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
