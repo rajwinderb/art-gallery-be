@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, render_template, jsonify, request
 from get_images.get_artworks import get_from_search
+from utils_functions import dict_clean
 
 load_dotenv()
 
@@ -17,6 +18,19 @@ else:
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
+
+class artists(db.Model):
+    __tablename__ = 'artists'
+    id = db.Column(db.Integer, primary_key=True)
+    artistdisplayname = db.Column(db.String(250), nullable=False)
+    artistdisplaybio = db.Column(db.String)
+    artistgender = db.Column(db.String)
+
+    def __init__(self, artistdisplayname, artistdisplaybio, artistgender):
+        self.artistdisplayname = artistdisplayname
+        self.artistdisplaybio = artistdisplaybio
+        self.artistgender = artistgender
 
 
 class users(db.Model):
@@ -35,6 +49,72 @@ class tags(db.Model):
 
     def __init__(self, tag):
         self.tag = tag
+
+
+class tagRelations(db.Model):
+    __tablename__ = "tagrelations"
+    tagid = db.Column(db.Integer, db.ForeignKey('tags.id'), primary_key=True, nullable=False)
+    artid = db.Column(db.Integer, db.ForeignKey('artworks.id'), primary_key=True, nullable=False)
+
+    def __init__(self, tagid, artid):
+        self.tagid = tagid
+        self.artid = artid
+
+
+class userArt(db.Model):
+    __tablename__ = "userArt"
+    userid = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True, nullable=False)
+    artid = db.Column(db.Integer, db.ForeignKey('artworks.id'), primary_key=True, nullable=False)
+    isfavourite = db.Column(db.Boolean, default=False)
+
+    def __init__(self, userid, artid, isfavourite=False):
+        self.userid = userid
+        self.artid = artid
+        self.isfavourite = isfavourite if isfavourite is not False else False
+
+
+class artworks(db.Model):
+    __tablename__ = 'artworks'
+    id = db.Column(db.Integer, primary_key=True)
+    ishighlight = db.Column(db.Boolean, nullable=False)
+    primaryimage = db.Column(db.String, nullable=False)
+    primaryimagesmall = db.Column(db.String, nullable=False)
+    department = db.Column(db.String(150))
+    objectname = db.Column(db.String(100))
+    title = db.Column(db.String)
+    culture = db.Column(db.String(150))
+    period = db.Column(db.String(150))
+    dynasty = db.Column(db.String(150))
+    artistprefix = db.Column(db.String(150))
+    artistid = db.Column(db.Integer, db.ForeignKey('artists.id'))
+    objectdate = db.Column(db.String(150))
+    medium = db.Column(db.String(150))
+    country = db.Column(db.String(150))
+    classification = db.Column(db.String(150))
+    linkresource = db.Column(db.String)
+    featured = db.Column(db.Boolean, default=False)
+
+    def __init__(self, id, ishighlight, primaryimage, primaryimagesmall, department, objectname, title, culture, period,
+                 dynasty, artistprefix, artistid, objectdate, medium, country, classification, linkresource,
+                 featured=False):
+        self.id = id
+        self.ishighlight = ishighlight
+        self.primaryimage = primaryimage
+        self.primaryimagesmall = primaryimagesmall
+        self.department = department
+        self.objectname = objectname
+        self.title = title
+        self.culture = culture
+        self.period = period
+        self.dynasty = dynasty
+        self.artistprefix = artistprefix
+        self.artistid = artistid
+        self.objectdate = objectdate
+        self.medium = medium
+        self.country = country
+        self.classification = classification
+        self.linkresource = linkresource
+        self.featured = featured if featured is not False else False
 
 
 @app.route('/')
@@ -67,6 +147,7 @@ def get_users():
 def add_users():
     if request.method == 'POST':
         user_data = request.get_json()
+        user_data = dict_clean(dict(user_data))
         in_database = users.query.filter_by(username=user_data['username']).first()
         if in_database:
             return jsonify({'status': 'failed', 'message': 'This username already exists, try another'}, user_data)
@@ -89,7 +170,73 @@ def get_tags():
     return jsonify({'status': 'failed'}, 404)
 
 
-# @app.route('/artworks', method=['POST'])
+@app.route('/artworks', methods=['POST'])
+def add_artwork():
+    if request.method == 'POST':
+        artwork_data = request.get_json()
+        artwork_data = dict_clean(dict(artwork_data))
+        tags_data = artwork_data['tags']
+        artwork_in_database = artworks.query.filter_by(id=artwork_data['id']).first()
+        if artwork_in_database:
+            return jsonify({'status': 'failed', 'message': 'This artwork already exists, try another'}, artwork_data)
+        artist_in_database = artists.query.filter_by(artistdisplayname=artwork_data["artistDisplayName"]).first()
+        artist_id = artist_in_database.id if artist_in_database is not None else 0
+        if artist_in_database is None:
+            new_artist = artists(artistdisplayname=artwork_data['artistDisplayName'],
+                                 artistdisplaybio=artwork_data['artistDisplayBio'],
+                                 artistgender=artwork_data['artistGender'])
+            db.session.add(new_artist)
+            db.session.flush()
+            artist_id = new_artist.id
+        new_artwork = artworks(id=artwork_data['id'],
+                               primaryimage=artwork_data['primaryImage'],
+                               primaryimagesmall=artwork_data['primaryImageSmall'],
+                               department=artwork_data['department'],
+                               objectname=artwork_data['objectName'],
+                               title=artwork_data['title'],
+                               culture=artwork_data['culture'],
+                               period=artwork_data['period'],
+                               dynasty=artwork_data['dynasty'],
+                               artistprefix=artwork_data['artistPrefix'],
+                               artistid=artist_id,
+                               objectdate=artwork_data['objectDate'],
+                               medium=artwork_data['medium'],
+                               country=artwork_data['country'],
+                               classification=artwork_data['classification'],
+                               linkresource=artwork_data['linkResource'],
+                               featured=artwork_data['featured'],
+                               ishighlight=artwork_data['isHighlight'])
+        db.session.add(new_artwork)
+        db.session.flush()
+        artwork_id = new_artwork.id
+        for tag_check in tags_data:
+            tag_in_database = tags.query.filter_by(tag=tag_check).first()
+            tag_id = tag_in_database.id if tag_in_database is not None else 0
+            if tag_in_database is None:
+                new_tag = tags(tag=tag_check)
+                db.session.add(new_tag)
+                db.session.flush()
+                tag_id = new_tag.id
+
+            new_tag_relation = tagRelations(tagid=tag_id, artid=artwork_id)
+            db.session.add(new_tag_relation)
+            db.session.flush()
+            db.session.commit()
+
+        return jsonify({'status': 'success', 'message': 'new artwork added', 'new_artwork_id': artwork_id})
+    return jsonify({'status': 'failed'}, 404)
+
+
+# TODO: '/artworks' GET
+# TODO: '/userart' GET
+# TODO: '/userart' POST
+# TODO: '/artworks' PUT
+# TODO: '/userart' PUT
+# TODO: '/userart' DElETE
+# @app.route('/userart/<int:userid>', methods=['GET'])
+# def get_user_art(userid):
+#     if request.method == 'GET':
+#         all_artworks = []
 
 
 if __name__ == '__main__':

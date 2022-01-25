@@ -16,7 +16,7 @@ def get_single_artwork_info(artwork_id):
                    'culture', 'period', 'dynasty', 'artistPrefix', 'artistDisplayName', 'artistDisplayBio',
                    'artistGender', 'objectDate', 'medium', 'country', 'classification', 'linkResource', 'tags']
     return_data = {wanted_key: response_json[wanted_key] for wanted_key in wanted_keys}
-    if is_public_domain:
+    if is_public_domain and return_data['primaryImage'] != "":
         return return_data
     return False
 

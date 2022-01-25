@@ -7,9 +7,9 @@ DROP TABLE IF EXISTS users;
 
 CREATE TABLE artists(
     id SERIAL PRIMARY KEY,
-    artistName VARCHAR(250) NOT NULl,
+    artistDisplayName VARCHAR(250) NOT NULl,
     artistDisplayBio TEXT,
-    gender VARCHAR(50)
+    artistGender VARCHAR(50)
 );
 
 CREATE TABLE tags(
