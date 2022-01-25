@@ -9,12 +9,14 @@ load_dotenv()
 
 app = Flask(__name__)
 
+DATABASE_URL = None
+
 if os.getenv('DEVELOPMENT'):
     app.debug = True
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 else:
     app.debug = False
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'DATABASE_URL'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'heroku_database_url'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
