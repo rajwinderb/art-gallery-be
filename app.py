@@ -62,7 +62,7 @@ class tagRelations(db.Model):
 
 
 class userArt(db.Model):
-    __tablename__ = "userArt"
+    __tablename__ = "userart"
     userid = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True, nullable=False)
     artid = db.Column(db.Integer, db.ForeignKey('artworks.id'), primary_key=True, nullable=False)
     isfavourite = db.Column(db.Boolean, default=False)
@@ -154,7 +154,8 @@ def add_users():
         new_user = users(username=user_data['username'])
         db.session.add(new_user)
         db.session.commit()
-        return jsonify({'status': 'success', 'message': 'user added'}, user_data)
+        return jsonify({'status': 'success', 'message': 'user added',
+                        'new_user': {'id': new_user.id, 'username': new_user.username}})
     return jsonify({'status': 'failed'}, 404)
 
 
@@ -164,7 +165,7 @@ def get_tags():
         all_tags = []
         response = tags.query.all()
         for tag in response:
-            current_tag = {'id': tag.id, 'tag': tag.username}
+            current_tag = {'id': tag.id, 'tag': tag.tag}
             all_tags.append(current_tag)
         return jsonify({'status': 'success', 'tags': all_tags})
     return jsonify({'status': 'failed'}, 404)
@@ -227,12 +228,93 @@ def add_artwork():
     return jsonify({'status': 'failed'}, 404)
 
 
-# TODO: '/artworks' GET
+@app.route('/artworks', methods=['GET'])
+def get_artworks():
+    if request.method == 'GET':
+        all_artworks = []
+        response = db.session.query(artworks, artists).join(artists).all()
+        for artwork in response:
+            tags_response = db.session.query(tags, tagRelations).join(tagRelations).filter_by(artid=artwork[0].id).all()
+            artwork_tags = []
+            for tag in tags_response:
+                artwork_tags.append({'id': tag[0].id, 'tag': tag[0].tag})
+            current_artwork = {'id': artwork[0].id,
+                               'primaryimage': artwork[0].primaryimage,
+                               'primaryimagesmall': artwork[0].primaryimagesmall,
+                               'department': artwork[0].department,
+                               'objectname': artwork[0].objectname,
+                               'title': artwork[0].title,
+                               'culture': artwork[0].culture,
+                               'period': artwork[0].period,
+                               'dynasty': artwork[0].dynasty,
+                               'artistprefix': artwork[0].artistprefix,
+                               'artistid': artwork[0].artistid,
+                               'objectdate': artwork[0].objectdate,
+                               'medium': artwork[0].medium,
+                               'country': artwork[0].country,
+                               'classification': artwork[0].classification,
+                               'linkresource': artwork[0].linkresource,
+                               'featured': artwork[0].featured,
+                               'ishighlight': artwork[0].ishighlight,
+                               'artistdisplayname': artwork[1].artistdisplayname,
+                               'artistdisplaybio': artwork[1].artistdisplaybio,
+                               'artistgender': artwork[1].artistgender,
+                               'tags': artwork_tags}
+            all_artworks.append(current_artwork)
+        return jsonify({'status': 'success', 'artworks': all_artworks})
+    return jsonify({'status': 'failed'}, 404)
+
+
+@app.route('/userart/<int:userid>', methods=['GET'])
+def get_user_art(userid):
+    if request.method == 'GET':
+        all_user_art = []
+        response = userArt.query.filter_by(userid=userid).all()
+        for user_art in response:
+            current_user_art = {'userid': user_art.userid, 'artid': user_art.artid}
+            all_user_art.append(current_user_art)
+        return jsonify({'status': 'success', 'user_art': all_user_art})
+    return jsonify({'status': 'failed'}, 404)
+
+
+@app.route('/userart/<int:userid>', methods=['POST'])
+def add_user_art(userid):
+    if request.method == 'POST':
+        user_art_data = request.get_json()
+        user_art_data = dict_clean(dict(user_art_data))
+        in_database = userArt.query.filter_by(userid=userid, artid=user_art_data['artid']).first()
+        if in_database:
+            return jsonify({'status': 'failed', 'message': 'This is already in your art gallery, try another'},
+                           user_art_data)
+        new_user_art = userArt(userid=userid, artid=user_art_data['artid'], isfavourite=user_art_data['isFavourite'])
+        db.session.add(new_user_art)
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'user art added',
+                        'new_user_art': {'userid': new_user_art.userid, 'artid': new_user_art.artid,
+                                         'isfavourite': new_user_art.isfavourite
+                                         }
+                        })
+    return jsonify({'status': 'failed'}, 404)
+
+
+@app.route('/userart/<int:userid>', methods=['DELETE'])
+def delete_user_art(userid):
+    if request.method == 'DELETE':
+        user_art_data = request.get_json()
+        user_art_data = dict_clean(dict(user_art_data))
+        user_art_delete = userArt.query.filter_by(userid=userid, artid=user_art_data['artid']).first()
+        if user_art_delete is None:
+            jsonify({'status': 'failed', 'message': 'This is not in your art gallery, try another'},
+                    user_art_data)
+        userArt.query.filter_by(userid=userid, artid=user_art_data['artid']).delete()
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'user art deleted'})
+    return jsonify({'status': 'failed'}, 404)
+
+
 # TODO: '/userart' GET
-# TODO: '/userart' POST
 # TODO: '/artworks' PUT
 # TODO: '/userart' PUT
-# TODO: '/userart' DElETE
 # @app.route('/userart/<int:userid>', methods=['GET'])
 # def get_user_art(userid):
 #     if request.method == 'GET':
