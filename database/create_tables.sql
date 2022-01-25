@@ -47,13 +47,17 @@ CREATE TABLE artworks(
 CREATE TABLE tagRelations(
   tagid INTEGER NOT NULL,
   artid INTEGER NOT NULL,
-  PRIMARY KEY (tagid, artid)
+  PRIMARY KEY (tagid, artid),
+  FOREIGN KEY (tagid) REFERENCES tags(id),
+  FOREIGN KEY (artid) REFERENCES artworks(id)
 );
 
 CREATE TABLE userArt(
     userid INTEGER NOT NULL,
     artid INTEGER NOT NULL,
     isFavourite BOOLEAN DEFAULT false,
-    PRIMARY KEY (userid, artid)
+    PRIMARY KEY (userid, artid),
+    FOREIGN KEY (userid) REFERENCES users(id),
+    FOREIGN KEY (artid) REFERENCES artworks(id)
 );
 
