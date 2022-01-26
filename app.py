@@ -270,6 +270,43 @@ def get_artworks():
     return jsonify({'status': 'failed'}, 404)
 
 
+@app.route('/artworks/featured', methods=['GET'])
+def get_featured_artworks():
+    if request.method == 'GET':
+        all_artworks = []
+        response = db.session.query(artworks, artists).join(artists).filter_by(featured=True).all()
+        for artwork in response:
+            tags_response = db.session.query(tags, tagRelations).join(tagRelations).filter_by(artid=artwork[0].id).all()
+            artwork_tags = []
+            for tag in tags_response:
+                artwork_tags.append({'id': tag[0].id, 'tag': tag[0].tag})
+            current_artwork = {'id': artwork[0].id,
+                               'primaryimage': artwork[0].primaryimage,
+                               'primaryimagesmall': artwork[0].primaryimagesmall,
+                               'department': artwork[0].department,
+                               'objectname': artwork[0].objectname,
+                               'title': artwork[0].title,
+                               'culture': artwork[0].culture,
+                               'period': artwork[0].period,
+                               'dynasty': artwork[0].dynasty,
+                               'artistprefix': artwork[0].artistprefix,
+                               'artistid': artwork[0].artistid,
+                               'objectdate': artwork[0].objectdate,
+                               'medium': artwork[0].medium,
+                               'country': artwork[0].country,
+                               'classification': artwork[0].classification,
+                               'linkresource': artwork[0].linkresource,
+                               'featured': artwork[0].featured,
+                               'ishighlight': artwork[0].ishighlight,
+                               'artistdisplayname': artwork[1].artistdisplayname,
+                               'artistdisplaybio': artwork[1].artistdisplaybio,
+                               'artistgender': artwork[1].artistgender,
+                               'tags': artwork_tags}
+            all_artworks.append(current_artwork)
+        return jsonify({'status': 'success', 'artworks': all_artworks})
+    return jsonify({'status': 'failed'}, 404)
+
+
 @app.route('/userart/<int:userid>', methods=['GET'])
 def get_user_art(userid):
     if request.method == 'GET':
