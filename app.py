@@ -4,10 +4,12 @@ from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, render_template, jsonify, request
 from get_images.get_artworks import get_from_search
 from utils_functions import dict_clean
+from flask_cors import CORS
 
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app)
 
 URI = os.getenv('DATABASE_URL')
 if URI.startswith("postgres://"):
@@ -38,7 +40,6 @@ class artists(db.Model):
 
 
 class users(db.Model):
-
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), nullable=False)
