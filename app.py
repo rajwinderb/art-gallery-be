@@ -274,7 +274,7 @@ def get_artworks():
 def get_featured_artworks():
     if request.method == 'GET':
         all_artworks = []
-        response = db.session.query(artworks, artists).join(artists).filter_by(featured=True).all()
+        response = db.session.query(artworks, artists).filter_by(featured=True).join(artists).all()
         for artwork in response:
             tags_response = db.session.query(tags, tagRelations).join(tagRelations).filter_by(artid=artwork[0].id).all()
             artwork_tags = []
