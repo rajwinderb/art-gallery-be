@@ -1,7 +1,10 @@
+import io
 import os
+
+import requests
 from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_file
 from get_images.get_artworks import get_from_search
 from utils_functions import dict_clean
 from flask_cors import CORS
@@ -158,6 +161,7 @@ def add_users():
         if in_database:
             return jsonify({'status': 'failed', 'message': 'This username already exists, try another'}, user_data)
         new_user = users(username=user_data['username'])
+        print(type(new_user))
         db.session.add(new_user)
         db.session.commit()
         return jsonify({'status': 'success', 'message': 'user added',
@@ -400,6 +404,19 @@ def update_user_art(userid):
     user_art.isfavourite = update_data['isfavourite']
     db.session.commit()
     return jsonify({'status': 'success', 'message': 'isfavourite changed', 'is_favourite': user_art.isfavourite})
+
+
+@app.route('/getimage/<int:artid>.jpg', methods=['GET'])
+def get_art_image(artid):
+    artwork = artworks.query.filter_by(id=artid).first()
+    url = artwork.primaryimagesmall
+    try:
+        response = requests.get(url)
+        img = io.BytesIO(response.content)
+        return send_file(img, mimetype='image/jpg')
+    except Exception as e:
+        status = "Error! = " + str(e)
+        return status
 
 
 if __name__ == '__main__':
