@@ -220,19 +220,20 @@ def add_artwork():
         db.session.add(new_artwork)
         db.session.flush()
         artwork_id = new_artwork.id
-        for tag_check in tags_data:
-            tag_in_database = tags.query.filter_by(tag=tag_check).first()
-            tag_id = tag_in_database.id if tag_in_database is not None else 0
-            if tag_in_database is None:
-                new_tag = tags(tag=tag_check)
-                db.session.add(new_tag)
-                db.session.flush()
-                tag_id = new_tag.id
+        if tags_data is not None:
+            for tag_check in tags_data:
+                tag_in_database = tags.query.filter_by(tag=tag_check).first()
+                tag_id = tag_in_database.id if tag_in_database is not None else 0
+                if tag_in_database is None:
+                    new_tag = tags(tag=tag_check)
+                    db.session.add(new_tag)
+                    db.session.flush()
+                    tag_id = new_tag.id
 
-            new_tag_relation = tagRelations(tagid=tag_id, artid=artwork_id)
-            db.session.add(new_tag_relation)
-            db.session.flush()
-            db.session.commit()
+                new_tag_relation = tagRelations(tagid=tag_id, artid=artwork_id)
+                db.session.add(new_tag_relation)
+                db.session.flush()
+        db.session.commit()
 
         return jsonify({'status': 'success', 'message': 'new artwork added', 'new_artwork_id': artwork_id})
     return jsonify({'status': 'failed'}, 404)
